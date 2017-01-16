@@ -1,4 +1,4 @@
-package minelabs;
+package summitmc;
 
 import java.util.List;
 import java.util.ArrayList;
@@ -46,20 +46,20 @@ public class BlockListener implements Listener {
                     )
             ),
             new BlockSupport(
-                    BlockFace.SOUTH, 
+                    BlockFace.SOUTH,
                     Arrays.asList(
-                            BlockFace.SOUTH_EAST, 
-                            BlockFace.SOUTH_SOUTH_EAST, 
-                            BlockFace.SOUTH_SOUTH_WEST, 
+                            BlockFace.SOUTH_EAST,
+                            BlockFace.SOUTH_SOUTH_EAST,
+                            BlockFace.SOUTH_SOUTH_WEST,
                             BlockFace.SOUTH_WEST
                     )
             ),
             new BlockSupport(
-                    BlockFace.WEST, 
+                    BlockFace.WEST,
                     Arrays.asList(
-                            BlockFace.NORTH_WEST, 
-                            BlockFace.WEST_NORTH_WEST, 
-                            BlockFace.WEST_SOUTH_WEST, 
+                            BlockFace.NORTH_WEST,
+                            BlockFace.WEST_NORTH_WEST,
+                            BlockFace.WEST_SOUTH_WEST,
                             BlockFace.SOUTH_WEST
                     )
             )
@@ -68,19 +68,14 @@ public class BlockListener implements Listener {
     @EventHandler(priority = EventPriority.LOW)
     public void onBlockPlace(BlockPlaceEvent event) {
 
-        Block originBlock = event.getBlock();
-
-        switch (event.getBlock().getType()) {
-            // Blocks to allow to float
-            case FIRE:
-            case TNT:
-                return;
-            default:
-                // No floating allowed!
-                if (isSupported(originBlock) || isSupportedByNeighbors(originBlock)) {
-                    return; // This block is supported, take no action
-                }
-                break;
+        Block placed = event.getBlock();
+        if (!placed.getType().isSolid()) {
+            // Not a solid block that can be built upon, we don't care if it's supported
+            return;
+        }
+        if (isSupported(placed) || isSupportedByNeighbors(placed)) {
+            // This block is supported, take no action
+            return;
         }
 
         // If we got to here, this block is not supported
@@ -107,17 +102,16 @@ public class BlockListener implements Listener {
             }
         }
 
-        for (Block block : surroundingBlocks) {
-            if (block.getType() != Material.AIR && !isSupported(block, destroyed) && !isSupportedByNeighbors(block, destroyed)) {
-
-                // This block is no longer supported - spawn a falling block in its place and remove it
-                block.getWorld().spawnFallingBlock(block.getLocation().add(0.5, 0, 0.5), block.getType(), block.getData());
-                block.setType(Material.AIR);
-
-                // Trigger a BlockBreakEvent to propagate the change to further blocks
-                Bukkit.getServer().getPluginManager().callEvent(new BlockBreakEvent(block, event.getPlayer()));
-            }
-        }
+        surroundingBlocks
+                .stream()
+                // Filter to non-air blocks that are not supported directly or by neighbors
+                .filter((block) -> (block.getType() != Material.AIR && !isSupported(block, destroyed) && !isSupportedByNeighbors(block, destroyed)))
+                .forEach((block) -> {
+                    // This block is no longer supported - spawn a falling block in its place and remove it
+                    block.getWorld().spawnFallingBlock(block.getLocation().add(0.5, 0, 0.5), block.getType(), block.getData());
+                    block.setType(Material.AIR);
+                    Bukkit.getServer().getPluginManager().callEvent(new BlockBreakEvent(block, event.getPlayer()));
+                });
     }
 
     /*
@@ -133,8 +127,9 @@ public class BlockListener implements Listener {
             if (checking.getType() == Material.AIR) {
                 continue; // this direction is broken by air
             }
+            // Possible support block is not air, but is it supported?
             if (isSupported(checking, destroyedBlock)
-                    // Allow diagonal blocks if they are within 1 distance
+                    // Allow diagonal blocks to be the support they are within 1 distance
                     || isSupported(block.getRelative(support.assistingDirections.get(0), 1), destroyedBlock)
                     || isSupported(block.getRelative(support.assistingDirections.get(1), 1), destroyedBlock)
                     || isSupported(block.getRelative(support.assistingDirections.get(2), 1), destroyedBlock)
@@ -149,6 +144,7 @@ public class BlockListener implements Listener {
             if (checking.getType() == Material.AIR) {
                 continue; // this direction is broken by air
             }
+            // Possible support block is not air, but is it supported?
             if (isSupported(checking, destroyedBlock)) {
                 return true;
             }
@@ -160,6 +156,7 @@ public class BlockListener implements Listener {
             if (checking.getType() == Material.AIR) {
                 continue; // this direction is broken by air
             }
+            // Possible support block is not air, but is it supported?
             if (isSupported(checking, destroyedBlock)) {
                 return true;
             }

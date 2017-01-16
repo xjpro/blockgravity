@@ -1,4 +1,4 @@
-package minelabs;
+package summitmc;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
