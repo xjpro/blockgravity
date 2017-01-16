@@ -16,8 +16,10 @@ import org.bukkit.event.block.*;
 public class BlockListener implements Listener {
 
     private class BlockSupport {
+
         public final BlockFace direction;
         public final List<BlockFace> assistingDirections;
+
         public BlockSupport(BlockFace direction, List<BlockFace> assistingDirections) {
             this.direction = direction;
             this.assistingDirections = assistingDirections; // must be length 4
@@ -25,10 +27,42 @@ public class BlockListener implements Listener {
     }
 
     private final List<BlockSupport> supportingDirections = Arrays.asList(
-            new BlockSupport(BlockFace.NORTH, Arrays.asList(BlockFace.NORTH_WEST, BlockFace.NORTH_NORTH_WEST, BlockFace.NORTH_NORTH_EAST, BlockFace.NORTH_EAST)),
-            new BlockSupport(BlockFace.EAST, Arrays.asList(BlockFace.NORTH_EAST, BlockFace.EAST_NORTH_EAST, BlockFace.EAST_SOUTH_EAST, BlockFace.SOUTH_EAST)),
-            new BlockSupport(BlockFace.SOUTH, Arrays.asList(BlockFace.SOUTH_EAST, BlockFace.SOUTH_SOUTH_EAST, BlockFace.SOUTH_SOUTH_WEST, BlockFace.SOUTH_WEST)),
-            new BlockSupport(BlockFace.WEST, Arrays.asList(BlockFace.NORTH_WEST, BlockFace.WEST_NORTH_WEST, BlockFace.WEST_SOUTH_WEST, BlockFace.SOUTH_WEST))
+            new BlockSupport(
+                    BlockFace.NORTH,
+                    Arrays.asList(
+                            BlockFace.NORTH_WEST,
+                            BlockFace.NORTH_NORTH_WEST,
+                            BlockFace.NORTH_NORTH_EAST,
+                            BlockFace.NORTH_EAST
+                    )
+            ),
+            new BlockSupport(
+                    BlockFace.EAST,
+                    Arrays.asList(
+                            BlockFace.NORTH_EAST,
+                            BlockFace.EAST_NORTH_EAST,
+                            BlockFace.EAST_SOUTH_EAST,
+                            BlockFace.SOUTH_EAST
+                    )
+            ),
+            new BlockSupport(
+                    BlockFace.SOUTH, 
+                    Arrays.asList(
+                            BlockFace.SOUTH_EAST, 
+                            BlockFace.SOUTH_SOUTH_EAST, 
+                            BlockFace.SOUTH_SOUTH_WEST, 
+                            BlockFace.SOUTH_WEST
+                    )
+            ),
+            new BlockSupport(
+                    BlockFace.WEST, 
+                    Arrays.asList(
+                            BlockFace.NORTH_WEST, 
+                            BlockFace.WEST_NORTH_WEST, 
+                            BlockFace.WEST_SOUTH_WEST, 
+                            BlockFace.SOUTH_WEST
+                    )
+            )
     );
 
     @EventHandler(priority = EventPriority.LOW)
@@ -87,8 +121,8 @@ public class BlockListener implements Listener {
     }
 
     /*
-	 * block - block to check if supported by neighbors
-	 * destroyedBlock - the block being destroyed, treat as air
+    block - block to check if supported by neighbors
+    destroyedBlock - the block being destroyed, treat as air
      */
     private boolean isSupportedByNeighbors(Block block, Block destroyedBlock) {
         for (BlockSupport support : supportingDirections) {
@@ -99,7 +133,7 @@ public class BlockListener implements Listener {
             if (checking.getType() == Material.AIR) {
                 continue; // this direction is broken by air
             }
-            if (isSupported(checking, destroyedBlock) 
+            if (isSupported(checking, destroyedBlock)
                     // Allow diagonal blocks if they are within 1 distance
                     || isSupported(block.getRelative(support.assistingDirections.get(0), 1), destroyedBlock)
                     || isSupported(block.getRelative(support.assistingDirections.get(1), 1), destroyedBlock)
@@ -139,8 +173,8 @@ public class BlockListener implements Listener {
     }
 
     /*
-	 * block - block to check if supported
-	 * destroyedBlock - the block being destroyed, treat as air
+    block - block to check if supported
+    destroyedBlock - the block being destroyed, treat as air
      */
     private boolean isSupported(Block block, Block destroyedBlock) {
         Block checking = block.getRelative(BlockFace.DOWN);
