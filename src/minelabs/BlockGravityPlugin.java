@@ -1,3 +1,5 @@
+package minelabs;
+
 import org.bukkit.plugin.java.JavaPlugin;
 
 import org.bukkit.plugin.PluginManager;
