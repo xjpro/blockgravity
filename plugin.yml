@@ -1,3 +1,3 @@
-name: SupportedBlocks
-main: SupportedBlocksPlugin
+name: BlockGravity
+main: BlockGravityPlugin
 version: 1.0
