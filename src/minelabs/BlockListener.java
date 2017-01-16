@@ -1,6 +1,7 @@
 package minelabs;
 
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Arrays;
 
 import org.bukkit.Bukkit;
@@ -13,22 +14,21 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.block.*;
 
 public class BlockListener implements Listener {
-    
+
     private class BlockSupport {
         public final BlockFace direction;
         public final List<BlockFace> assistingDirections;
-        
         public BlockSupport(BlockFace direction, List<BlockFace> assistingDirections) {
             this.direction = direction;
-            this.assistingDirections = assistingDirections; // must be length 2
+            this.assistingDirections = assistingDirections; // must be length 4
         }
     }
 
     private final List<BlockSupport> supportingDirections = Arrays.asList(
-            new BlockSupport(BlockFace.NORTH, Arrays.asList(BlockFace.NORTH_EAST, BlockFace.NORTH_WEST)),
-            new BlockSupport(BlockFace.EAST, Arrays.asList(BlockFace.NORTH_EAST, BlockFace.SOUTH_EAST)),
-            new BlockSupport(BlockFace.SOUTH, Arrays.asList(BlockFace.SOUTH_EAST, BlockFace.SOUTH_WEST)),
-            new BlockSupport(BlockFace.WEST, Arrays.asList(BlockFace.NORTH_WEST, BlockFace.SOUTH_WEST))
+            new BlockSupport(BlockFace.NORTH, Arrays.asList(BlockFace.NORTH_WEST, BlockFace.NORTH_NORTH_WEST, BlockFace.NORTH_NORTH_EAST, BlockFace.NORTH_EAST)),
+            new BlockSupport(BlockFace.EAST, Arrays.asList(BlockFace.NORTH_EAST, BlockFace.EAST_NORTH_EAST, BlockFace.EAST_SOUTH_EAST, BlockFace.SOUTH_EAST)),
+            new BlockSupport(BlockFace.SOUTH, Arrays.asList(BlockFace.SOUTH_EAST, BlockFace.SOUTH_SOUTH_EAST, BlockFace.SOUTH_SOUTH_WEST, BlockFace.SOUTH_WEST)),
+            new BlockSupport(BlockFace.WEST, Arrays.asList(BlockFace.NORTH_WEST, BlockFace.WEST_NORTH_WEST, BlockFace.WEST_SOUTH_WEST, BlockFace.SOUTH_WEST))
     );
 
     @EventHandler(priority = EventPriority.LOW)
@@ -58,15 +58,23 @@ public class BlockListener implements Listener {
     @EventHandler(priority = EventPriority.LOW)
     public void onBlockRemove(BlockBreakEvent event) {
 
-        Block originBlock = event.getBlock();
+        Block destroyed = event.getBlock();
 
-        // Find all surrounding blocks and check them
-        List<Block> surroundingBlocks = Arrays.asList(originBlock.getRelative(BlockFace.UP),
-                originBlock.getRelative(BlockFace.NORTH), originBlock.getRelative(BlockFace.EAST),
-                originBlock.getRelative(BlockFace.SOUTH), originBlock.getRelative(BlockFace.WEST));
+        List<Block> surroundingBlocks = new ArrayList<>();
+        surroundingBlocks.add(destroyed.getRelative(BlockFace.NORTH));
+        surroundingBlocks.add(destroyed.getRelative(BlockFace.EAST));
+        surroundingBlocks.add(destroyed.getRelative(BlockFace.SOUTH));
+        surroundingBlocks.add(destroyed.getRelative(BlockFace.WEST));
+
+        // Add all upward blocks
+        for (int x = -3; x <= 3; x++) {
+            for (int z = -3; z <= 3; z++) {
+                surroundingBlocks.add(destroyed.getRelative(x, 1, z));
+            }
+        }
 
         for (Block block : surroundingBlocks) {
-            if (block.getType() != Material.AIR && !isSupported(block, originBlock) && !isSupportedByNeighbors(block, originBlock)) {
+            if (block.getType() != Material.AIR && !isSupported(block, destroyed) && !isSupportedByNeighbors(block, destroyed)) {
 
                 // This block is no longer supported - spawn a falling block in its place and remove it
                 block.getWorld().spawnFallingBlock(block.getLocation().add(0.5, 0, 0.5), block.getType(), block.getData());
@@ -92,8 +100,11 @@ public class BlockListener implements Listener {
                 continue; // this direction is broken by air
             }
             if (isSupported(checking, destroyedBlock) 
-                    || isSupported(block.getRelative(support.assistingDirections.get(0)), destroyedBlock)
-                    || isSupported(block.getRelative(support.assistingDirections.get(1)), destroyedBlock)) {
+                    // Allow diagonal blocks if they are within 1 distance
+                    || isSupported(block.getRelative(support.assistingDirections.get(0), 1), destroyedBlock)
+                    || isSupported(block.getRelative(support.assistingDirections.get(1), 1), destroyedBlock)
+                    || isSupported(block.getRelative(support.assistingDirections.get(2), 1), destroyedBlock)
+                    || isSupported(block.getRelative(support.assistingDirections.get(3), 1), destroyedBlock)) {
                 return true;
             }
 
@@ -119,10 +130,10 @@ public class BlockListener implements Listener {
                 return true;
             }
         }
-        
+
         return false;
     }
-    
+
     private boolean isSupportedByNeighbors(Block block) {
         return isSupportedByNeighbors(block, null);
     }
@@ -138,7 +149,7 @@ public class BlockListener implements Listener {
         }
         return checking.getType() != Material.AIR;
     }
-    
+
     private boolean isSupported(Block block) {
         return isSupported(block, null);
     }
