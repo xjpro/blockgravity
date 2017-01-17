@@ -1,3 +1,3 @@
 name: BlockGravity
-main: minelabs.BlockGravityPlugin
+main: blockgravity.BlockGravityPlugin
 version: 1.0

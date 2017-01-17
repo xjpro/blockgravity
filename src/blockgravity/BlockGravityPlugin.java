@@ -1,4 +1,4 @@
-package summitmc;
+package blockgravity;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
