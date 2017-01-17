@@ -8,10 +8,13 @@ import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.block.*;
+import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 
 public class BlockListener implements Listener {
 
@@ -69,7 +72,7 @@ public class BlockListener implements Listener {
     public void onBlockPlace(BlockPlaceEvent event) {
 
         Block placed = event.getBlock();
-        if (!placed.getType().isSolid()) {
+        if (!placed.getType().isSolid() || placed.getType() == Material.BEDROCK) {
             // Not a solid block that can be built upon, we don't care if it's supported
             return;
         }
@@ -86,9 +89,28 @@ public class BlockListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOW)
     public void onBlockRemove(BlockBreakEvent event) {
+        handleBlockRemoved(event.getBlock(), event.getPlayer());
+    }
 
-        Block destroyed = event.getBlock();
+    @EventHandler(priority = EventPriority.LOW)
+    public void onEntityExplode(EntityExplodeEvent event) {
+        List<Block> destroyedBlocks = event.blockList();
+        destroyedBlocks.stream().forEach((destroyed) -> {
+            handleBlockRemoved(destroyed, null); // todo can we get the player who set off TNT?
+        });
+    }
 
+    @EventHandler(priority = EventPriority.LOW)
+    public void onPlayerInteract(PlayerInteractEvent event) {
+        if (event.getAction() == Action.RIGHT_CLICK_BLOCK && event.getMaterial() == Material.FLINT_AND_STEEL) {
+            Block clicked = event.getClickedBlock();
+            if (clicked.getType() == Material.TNT) {
+                handleBlockRemoved(clicked, event.getPlayer());
+            }
+        }
+    }
+
+    private void handleBlockRemoved(Block destroyed, Player player) {
         List<Block> surroundingBlocks = new ArrayList<>();
         surroundingBlocks.add(destroyed.getRelative(BlockFace.NORTH));
         surroundingBlocks.add(destroyed.getRelative(BlockFace.EAST));
@@ -105,12 +127,13 @@ public class BlockListener implements Listener {
         surroundingBlocks
                 .stream()
                 // Filter to non-air blocks that are not supported directly or by neighbors
-                .filter((block) -> (block.getType() != Material.AIR && !isSupported(block, destroyed) && !isSupportedByNeighbors(block, destroyed)))
+                .filter((block) -> (block.getType() != Material.AIR && block.getType() != Material.BEDROCK
+                        && !isSupported(block, destroyed) && !isSupportedByNeighbors(block, destroyed)))
                 .forEach((block) -> {
                     // This block is no longer supported - spawn a falling block in its place and remove it
                     block.getWorld().spawnFallingBlock(block.getLocation().add(0.5, 0, 0.5), block.getType(), block.getData());
                     block.setType(Material.AIR);
-                    Bukkit.getServer().getPluginManager().callEvent(new BlockBreakEvent(block, event.getPlayer()));
+                    Bukkit.getServer().getPluginManager().callEvent(new BlockBreakEvent(block, player));
                 });
     }
 
@@ -120,6 +143,8 @@ public class BlockListener implements Listener {
      */
     private boolean isSupportedByNeighbors(Block block, Block destroyedBlock) {
         for (BlockSupport support : supportingDirections) {
+
+            // Distance 1
             Block checking = block.getRelative(support.direction, 1);
             if (destroyedBlock != null && destroyedBlock.getLocation().equals(checking.getLocation())) {
                 continue;
@@ -128,15 +153,28 @@ public class BlockListener implements Listener {
                 continue; // this direction is broken by non-solid block
             }
             // Possible support block is solid, but is it supported?
-            if (isSupported(checking, destroyedBlock)
-                    // Allow diagonal blocks to be the support they are within 1 distance
-                    || isSupported(block.getRelative(support.assistingDirections.get(0), 1), destroyedBlock)
-                    || isSupported(block.getRelative(support.assistingDirections.get(1), 1), destroyedBlock)
-                    || isSupported(block.getRelative(support.assistingDirections.get(2), 1), destroyedBlock)
-                    || isSupported(block.getRelative(support.assistingDirections.get(3), 1), destroyedBlock)) {
+            if (isSupported(checking, destroyedBlock)) {
+                return true;
+            }
+            // Allow diagonal blocks to be the support they are within 1 distance
+            Block diagonalBlock = block.getRelative(support.assistingDirections.get(0), 1);
+            if (diagonalBlock.getType().isSolid() && isSupported(diagonalBlock, destroyedBlock)) {
+                return true;
+            }
+            diagonalBlock = block.getRelative(support.assistingDirections.get(1), 1);
+            if (diagonalBlock.getType().isSolid() && isSupported(diagonalBlock, destroyedBlock)) {
+                return true;
+            }
+            diagonalBlock = block.getRelative(support.assistingDirections.get(2), 1);
+            if (diagonalBlock.getType().isSolid() && isSupported(diagonalBlock, destroyedBlock)) {
+                return true;
+            }
+            diagonalBlock = block.getRelative(support.assistingDirections.get(3), 1);
+            if (diagonalBlock.getType().isSolid() && isSupported(diagonalBlock, destroyedBlock)) {
                 return true;
             }
 
+            // Distance 2
             checking = block.getRelative(support.direction, 2);
             if (destroyedBlock != null && destroyedBlock.getLocation().equals(checking.getLocation())) {
                 continue;
@@ -149,6 +187,7 @@ public class BlockListener implements Listener {
                 return true;
             }
 
+            // Distance 3
             checking = block.getRelative(support.direction, 3);
             if (destroyedBlock != null && destroyedBlock.getLocation().equals(checking.getLocation())) {
                 continue;
