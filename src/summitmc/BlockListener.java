@@ -74,7 +74,7 @@ public class BlockListener implements Listener {
             return;
         }
         if (isSupported(placed) || isSupportedByNeighbors(placed)) {
-            // This block is supported, take no action
+            // This block is supported
             return;
         }
 
@@ -124,10 +124,10 @@ public class BlockListener implements Listener {
             if (destroyedBlock != null && destroyedBlock.getLocation().equals(checking.getLocation())) {
                 continue;
             }
-            if (checking.getType() == Material.AIR) {
-                continue; // this direction is broken by air
+            if (!checking.getType().isSolid()) {
+                continue; // this direction is broken by non-solid block
             }
-            // Possible support block is not air, but is it supported?
+            // Possible support block is solid, but is it supported?
             if (isSupported(checking, destroyedBlock)
                     // Allow diagonal blocks to be the support they are within 1 distance
                     || isSupported(block.getRelative(support.assistingDirections.get(0), 1), destroyedBlock)
@@ -141,10 +141,10 @@ public class BlockListener implements Listener {
             if (destroyedBlock != null && destroyedBlock.getLocation().equals(checking.getLocation())) {
                 continue;
             }
-            if (checking.getType() == Material.AIR) {
-                continue; // this direction is broken by air
+            if (!checking.getType().isSolid()) {
+                continue; // this direction is broken by non-solid block
             }
-            // Possible support block is not air, but is it supported?
+            // Possible support block is solid, but is it supported?
             if (isSupported(checking, destroyedBlock)) {
                 return true;
             }
@@ -153,10 +153,10 @@ public class BlockListener implements Listener {
             if (destroyedBlock != null && destroyedBlock.getLocation().equals(checking.getLocation())) {
                 continue;
             }
-            if (checking.getType() == Material.AIR) {
-                continue; // this direction is broken by air
+            if (!checking.getType().isSolid()) {
+                continue; // this direction is broken by non-solid block
             }
-            // Possible support block is not air, but is it supported?
+            // Possible support block is solid, but is it supported?
             if (isSupported(checking, destroyedBlock)) {
                 return true;
             }
@@ -170,15 +170,15 @@ public class BlockListener implements Listener {
     }
 
     /*
-    block - block to check if supported
+    block - block to check if supported 
     destroyedBlock - the block being destroyed, treat as air
      */
-    private boolean isSupported(Block block, Block destroyedBlock) {
-        Block checking = block.getRelative(BlockFace.DOWN);
-        if (destroyedBlock != null && destroyedBlock.getLocation().equals(checking.getLocation())) {
-            return false;
+    private boolean isSupported(Block block, Block destroyed) {
+        Block belowBlock = block.getRelative(BlockFace.DOWN);
+        if (destroyed != null && destroyed.getLocation().equals(belowBlock.getLocation())) {
+            return false; // Treat destroyedBlock as air
         }
-        return checking.getType() != Material.AIR;
+        return belowBlock.getType().isSolid();
     }
 
     private boolean isSupported(Block block) {
