@@ -58,7 +58,7 @@ public class BlockListener implements Listener {
 	);
 
 	@EventHandler(priority = EventPriority.HIGH)
-	public void onBlockCanBuild(BlockCanBuildEvent event) {
+	public void onBlockPlace(BlockPlaceEvent event) {
 
 		Block placed = event.getBlock();
 		if (!placed.getType().isSolid() || placed.getType() == Material.BEDROCK) {
@@ -71,7 +71,8 @@ public class BlockListener implements Listener {
 		}
 
 		// If we got to here, this block is not supported
-		event.setBuildable(false);
+		event.setBuild(false);
+		event.setCancelled(true);
 		// print message?
 	}
 
