@@ -77,19 +77,19 @@ public class BlockListener implements Listener {
 		// print message?
 	}
 
-	@EventHandler(priority = EventPriority.LOWEST)
+	@EventHandler(priority = EventPriority.LOW)
 	public void onBlockBurn(BlockBurnEvent event) {
 		if (event.isCancelled()) return;
 		handleBlockRemoved(event.getBlock(), null);
 	}
 
-	@EventHandler(priority = EventPriority.LOWEST)
+	@EventHandler(priority = EventPriority.LOW)
 	public void onBlockRemove(BlockBreakEvent event) {
 		if (event.isCancelled()) return;
 		handleBlockRemoved(event.getBlock(), event.getPlayer());
 	}
 
-	@EventHandler(priority = EventPriority.LOWEST)
+	@EventHandler(priority = EventPriority.LOW)
 	public void onEntityExplode(EntityExplodeEvent event) {
 		if (event.isCancelled()) return;
 		event.blockList().forEach((destroyed) -> {
@@ -97,7 +97,7 @@ public class BlockListener implements Listener {
 		});
 	}
 
-	@EventHandler(priority = EventPriority.LOWEST)
+	@EventHandler(priority = EventPriority.LOW)
 	public void onPlayerInteract(PlayerInteractEvent event) {
 		if (event.isCancelled()) return;
 		if (event.getAction() == Action.RIGHT_CLICK_BLOCK && event.getMaterial() == Material.FLINT_AND_STEEL) {
@@ -108,7 +108,7 @@ public class BlockListener implements Listener {
 		}
 	}
 
-	@EventHandler(priority = EventPriority.LOWEST)
+	@EventHandler(priority = EventPriority.LOW)
 	public void onBlockPistonRetract(BlockPistonRetractEvent event) {
 		if (event.isCancelled()) return;
 		Bukkit.getScheduler().scheduleSyncDelayedTask(Bukkit.getPluginManager().getPlugin("BlockGravity"),
