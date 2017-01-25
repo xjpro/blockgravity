@@ -57,8 +57,9 @@ public class BlockListener implements Listener {
 			)
 	);
 
-	@EventHandler(priority = EventPriority.HIGH)
+	@EventHandler(priority = EventPriority.LOWEST)
 	public void onBlockPlace(BlockPlaceEvent event) {
+		if (event.isCancelled()) return;
 
 		Block placed = event.getBlock();
 		if (!placed.getType().isSolid() || placed.getType() == Material.BEDROCK) {
@@ -76,25 +77,29 @@ public class BlockListener implements Listener {
 		// print message?
 	}
 
-	@EventHandler(priority = EventPriority.HIGH)
+	@EventHandler(priority = EventPriority.LOWEST)
 	public void onBlockBurn(BlockBurnEvent event) {
+		if (event.isCancelled()) return;
 		handleBlockRemoved(event.getBlock(), null);
 	}
 
-	@EventHandler(priority = EventPriority.HIGH)
+	@EventHandler(priority = EventPriority.LOWEST)
 	public void onBlockRemove(BlockBreakEvent event) {
+		if (event.isCancelled()) return;
 		handleBlockRemoved(event.getBlock(), event.getPlayer());
 	}
 
-	@EventHandler(priority = EventPriority.HIGH)
+	@EventHandler(priority = EventPriority.LOWEST)
 	public void onEntityExplode(EntityExplodeEvent event) {
-		event.blockList().stream().forEach((destroyed) -> {
+		if (event.isCancelled()) return;
+		event.blockList().forEach((destroyed) -> {
 			handleBlockRemoved(destroyed, null); // todo can we get the player who set off TNT?
 		});
 	}
 
-	@EventHandler(priority = EventPriority.HIGH)
+	@EventHandler(priority = EventPriority.LOWEST)
 	public void onPlayerInteract(PlayerInteractEvent event) {
+		if (event.isCancelled()) return;
 		if (event.getAction() == Action.RIGHT_CLICK_BLOCK && event.getMaterial() == Material.FLINT_AND_STEEL) {
 			Block clicked = event.getClickedBlock();
 			if (clicked.getType() == Material.TNT) {
@@ -103,8 +108,9 @@ public class BlockListener implements Listener {
 		}
 	}
 
-	@EventHandler(priority = EventPriority.HIGH)
+	@EventHandler(priority = EventPriority.LOWEST)
 	public void onBlockPistonRetract(BlockPistonRetractEvent event) {
+		if (event.isCancelled()) return;
 		Bukkit.getScheduler().scheduleSyncDelayedTask(Bukkit.getPluginManager().getPlugin("BlockGravity"),
 				() -> {
 					handleBlockRemoved(event.getBlock(), null);
