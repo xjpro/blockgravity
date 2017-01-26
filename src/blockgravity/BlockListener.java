@@ -62,7 +62,7 @@ public class BlockListener implements Listener {
 		if (event.isCancelled()) return;
 
 		Block placed = event.getBlock();
-		if (!placed.getType().isSolid() || placed.getType() == Material.BEDROCK) {
+		if (!placed.getType().isSolid()) {
 			// Not a solid block that can be built upon, we don't care if it's supported
 			return;
 		}
@@ -134,9 +134,9 @@ public class BlockListener implements Listener {
 		surroundingBlocks
 				.stream()
 				// Filter to non-air blocks that are not supported directly or by neighbors
-				.filter((block) -> (block.getType() != Material.AIR && block.getType() != Material.BEDROCK
-						&& !isSupported(block, destroyed) && !isSupportedByNeighbors(block, destroyed)))
-				.forEach((block) -> {
+				.filter(block -> block.getType() != Material.AIR && block.getY() > 0
+						&& !isSupported(block, destroyed) && !isSupportedByNeighbors(block, destroyed))
+				.forEach(block -> {
 					// This block is no longer supported - spawn a falling block in its place and remove it
 					block.getWorld().spawnFallingBlock(block.getLocation().add(0.5, 0, 0.5), block.getType(), block.getData());
 					block.setType(Material.AIR);
