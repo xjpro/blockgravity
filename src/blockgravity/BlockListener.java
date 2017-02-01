@@ -1,20 +1,19 @@
 package blockgravity;
 
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Arrays;
-
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.entity.Player;
-import org.bukkit.event.Listener;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
 import org.bukkit.event.block.*;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class BlockListener implements Listener {
 
@@ -80,21 +79,25 @@ public class BlockListener implements Listener {
 	@EventHandler(priority = EventPriority.LOW)
 	public void onBlockBurn(BlockBurnEvent event) {
 		if (event.isCancelled()) return;
-		handleBlockRemoved(event.getBlock(), null);
+		handleBlockRemoved(event.getBlock());
 	}
 
 	@EventHandler(priority = EventPriority.LOW)
 	public void onBlockRemove(BlockBreakEvent event) {
 		if (event.isCancelled()) return;
-		handleBlockRemoved(event.getBlock(), event.getPlayer());
+		handleBlockRemoved(event.getBlock());
+	}
+
+	@EventHandler(priority = EventPriority.LOW)
+	public void onBlockFade(BlockFadeEvent event) {
+		if(event.isCancelled()) return;
+		handleBlockRemoved(event.getBlock());
 	}
 
 	@EventHandler(priority = EventPriority.LOW)
 	public void onEntityExplode(EntityExplodeEvent event) {
 		if (event.isCancelled()) return;
-		event.blockList().forEach((destroyed) -> {
-			handleBlockRemoved(destroyed, null); // todo can we get the player who set off TNT?
-		});
+		event.blockList().forEach(this::handleBlockRemoved);
 	}
 
 	@EventHandler(priority = EventPriority.LOW)
@@ -103,7 +106,7 @@ public class BlockListener implements Listener {
 		if (event.getAction() == Action.RIGHT_CLICK_BLOCK && event.getMaterial() == Material.FLINT_AND_STEEL) {
 			Block clicked = event.getClickedBlock();
 			if (clicked.getType() == Material.TNT) {
-				handleBlockRemoved(clicked, event.getPlayer());
+				handleBlockRemoved(clicked);
 			}
 		}
 	}
@@ -113,11 +116,11 @@ public class BlockListener implements Listener {
 		if (event.isCancelled()) return;
 		Bukkit.getScheduler().scheduleSyncDelayedTask(Bukkit.getPluginManager().getPlugin("BlockGravity"),
 				() -> {
-					handleBlockRemoved(event.getBlock(), null);
+					handleBlockRemoved(event.getBlock());
 				}, 4);
 	}
 
-	private void handleBlockRemoved(Block destroyed, Player player) {
+	private void handleBlockRemoved(Block destroyed) {
 		List<Block> surroundingBlocks = new ArrayList<>();
 		surroundingBlocks.add(destroyed.getRelative(BlockFace.NORTH));
 		surroundingBlocks.add(destroyed.getRelative(BlockFace.EAST));
@@ -140,7 +143,7 @@ public class BlockListener implements Listener {
 					// This block is no longer supported - spawn a falling block in its place and remove it
 					block.getWorld().spawnFallingBlock(block.getLocation().add(0.5, 0, 0.5), block.getType(), block.getData());
 					block.setType(Material.AIR);
-					Bukkit.getServer().getPluginManager().callEvent(new BlockBreakEvent(block, player));
+					Bukkit.getServer().getPluginManager().callEvent(new BlockFadeEvent(block, block.getState()));
 				});
 	}
 
