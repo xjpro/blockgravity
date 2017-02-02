@@ -1,0 +1,7 @@
+- Can't build more than 3 out
+- Can build corners
+- Burned blocks cause drops
+- Piston blocks cuase drops
+- Removing sand blocks causes drops
+- TNT blocks cause drops
+- Drops propagate

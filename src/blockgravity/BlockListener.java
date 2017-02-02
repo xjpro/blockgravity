@@ -120,9 +120,7 @@ public class BlockListener implements Listener {
 	@EventHandler(priority = EventPriority.LOW)
 	public void onBlockChanged(EntityChangeBlockEvent event) {
 		if (event.isCancelled()) return;
-		if (event.getEntityType() == EntityType.FALLING_BLOCK && event.getTo() == Material.AIR) {
-			// todo do we need the check for air?
-			// todo check if this works with sand naturally
+		if (event.getTo() == Material.AIR) {
 			handleBlockRemoved(event.getBlock());
 		}
 	}
@@ -149,7 +147,7 @@ public class BlockListener implements Listener {
 				.forEach(block -> {
 					// This block is no longer supported - spawn a falling block in its place and remove it
 					FallingBlock fallingBlock = block.getWorld().spawnFallingBlock(block.getLocation().add(0.5, 0, 0.5), block.getType(), block.getData());
-					block.setType(Material.AIR); // todo is this needed?
+					block.setType(Material.AIR);
 					Bukkit.getServer().getPluginManager().callEvent(new EntityChangeBlockEvent(fallingBlock, block, Material.AIR, block.getData()));
 				});
 	}
