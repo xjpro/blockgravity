@@ -4,7 +4,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.FallingBlock;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -138,6 +137,12 @@ public class BlockListener implements Listener {
 				surroundingBlocks.add(destroyed.getRelative(x, 1, z));
 			}
 		}
+
+		// Additional checks for blocks that break when the block below them breaks: doors, others? signs?
+		// These need to be the last blocks checked so the ones below can be turned to air if necessary
+		// todo unnecessary if the destroyed block is not a tall block or one that breaks in response to a nearby block breaking
+		surroundingBlocks.add(destroyed.getRelative(BlockFace.UP, 2)); // necessary if bottom block of door is broken
+		surroundingBlocks.add(destroyed.getRelative(BlockFace.UP, 3)); // necessary if block below a door is broken
 
 		surroundingBlocks
 				.stream()
