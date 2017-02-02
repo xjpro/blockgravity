@@ -142,7 +142,7 @@ public class BlockListener implements Listener {
 		surroundingBlocks
 				.stream()
 				// Filter to non-air blocks that are not supported directly or by neighbors
-				.filter(block -> block.getType() != Material.AIR && block.getY() > 0
+				.filter(block -> block.getType().isSolid() && block.getY() > 0
 						&& !isSupported(block, destroyed) && !isSupportedByNeighbors(block, destroyed))
 				.forEach(block -> {
 					// This block is no longer supported - spawn a falling block in its place and remove it
