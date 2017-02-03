@@ -1,7 +1,11 @@
 - Can't build more than 3 out
 - Can build corners
-- Burned blocks cause drops
-- Piston blocks cuase drops
-- Removing sand blocks causes drops
-- TNT blocks cause drops
+- When a support block is broken, blocks it was supporting fall
+- When a support block is burned away, blocks it was supporting fall
+- When a piston moves a block, blocks it was supporting fall
+- When sand falls, blocks above it fall even if they aren't sand/gravel
+- When TNT destroys a block, blocks it was supporting fall
+- When TNT is supporting a block, turning TNT to an entity by right clicking it causes blocks it was supporting fall
+- When a block lands on a door, it becomes an item of the block material
+- When a bedrock block lands, it is removed from the world
 - Drops propagate

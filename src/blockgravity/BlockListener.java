@@ -4,6 +4,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.FallingBlock;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -12,12 +13,20 @@ import org.bukkit.event.block.*;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.plugin.Plugin;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 public class BlockListener implements Listener {
+
+	private final Plugin plugin;
+
+	BlockListener(Plugin plugin) {
+		this.plugin = plugin;
+	}
 
 	private final List<BlockSupport> supportingDirections = Arrays.asList(
 			new BlockSupport(
@@ -110,18 +119,33 @@ public class BlockListener implements Listener {
 	@EventHandler(priority = EventPriority.LOW)
 	public void onBlockPistonRetract(BlockPistonRetractEvent event) {
 		if (event.isCancelled()) return;
-		Bukkit.getScheduler().scheduleSyncDelayedTask(Bukkit.getPluginManager().getPlugin("BlockGravity"),
-				() -> handleBlockRemoved(event.getBlock()), 4);
+		Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () -> handleBlockRemoved(event.getBlock()), 4);
 	}
 
 	@EventHandler(priority = EventPriority.LOW)
 	public void onBlockChanged(EntityChangeBlockEvent event) {
 		if (event.isCancelled()) return;
+
+		// Anytime a block is converting to air, handle it as a removed block
 		if (event.getTo() == Material.AIR) {
-			handleBlockRemoved(event.getBlock());
+			// Allow this to become air before processing it
+			Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () -> handleBlockRemoved(event.getBlock()), 0);
+		}
+		// There are also special cases where a falling block will be converting to a block that we will not allow
+		else if (event.getEntityType() == EntityType.FALLING_BLOCK) {
+			// If the falling block is of a type that is not permitted to land, cancel landing
+			if (!isPermittedToLand((FallingBlock) event.getEntity())) {
+				event.setCancelled(true);
+			}
+			// If the falling block is going to land on a non-supportive block, spawn an item in its place instead
+			else if (!isSupported(event.getBlock())) {
+				event.setCancelled(true);
+				event.getBlock().getWorld().dropItemNaturally(event.getBlock().getLocation().add(0.5, 0, 0.5), new ItemStack(event.getTo()));
+			}
 		}
 	}
 
+	@SuppressWarnings("deprecation")
 	private void handleBlockRemoved(Block destroyed) {
 		List<Block> surroundingBlocks = new ArrayList<>();
 		surroundingBlocks.add(destroyed.getRelative(BlockFace.NORTH));
@@ -146,13 +170,9 @@ public class BlockListener implements Listener {
 				.forEach(block -> {
 					// This block is no longer supported - spawn a falling block in its place
 					FallingBlock fallingBlock = block.getWorld().spawnFallingBlock(block.getLocation().add(0.5, 0, 0.5), block.getType(), block.getData());
-					if (!permittedToFall(fallingBlock)) {
-						// If not permitted to fall, remove the falling entity from the world
-						// Effectively the block will just disappear
-						fallingBlock.remove();
-					}
-					block.setType(Material.AIR); // todo to fully comply with eventing this statement should occur after the EntityChangeBlockEvent is triggered
 					Bukkit.getServer().getPluginManager().callEvent(new EntityChangeBlockEvent(fallingBlock, block, Material.AIR, block.getData()));
+					// We should always change the block's type after we've called the EntityChangeBlockEvent so its consistent with other Minecraft events
+					block.setType(Material.AIR);
 				});
 	}
 
@@ -252,7 +272,7 @@ public class BlockListener implements Listener {
 			case ACACIA_DOOR:
 			case DARK_OAK_DOOR:
 			case BIRCH_DOOR:
-			case IRON_DOOR:
+			case IRON_DOOR_BLOCK:
 			case JUNGLE_DOOR:
 			case SPRUCE_DOOR:
 			case WOOD_DOOR:
@@ -265,7 +285,7 @@ public class BlockListener implements Listener {
 	}
 
 	// Some falling blocks are of materials not normally acquirable by players
-	private boolean permittedToFall(FallingBlock fallingBlock) {
+	private boolean isPermittedToLand(FallingBlock fallingBlock) {
 		switch (fallingBlock.getMaterial()) {
 			case BEDROCK:
 				return false;
