@@ -63,8 +63,8 @@ public class BlockListener implements Listener {
 		if (event.isCancelled()) return;
 
 		Block placed = event.getBlock();
-		if (!placed.getType().isSolid()) {
-			// Not a solid block that can be built upon, we don't care if it's supported
+		if (!isSupportiveBlock(placed)) {
+			// Not a block that can be built upon, we don't care if it's supported
 			return;
 		}
 		if (isSupported(placed) || isSupportedByNeighbors(placed)) {
@@ -111,9 +111,7 @@ public class BlockListener implements Listener {
 	public void onBlockPistonRetract(BlockPistonRetractEvent event) {
 		if (event.isCancelled()) return;
 		Bukkit.getScheduler().scheduleSyncDelayedTask(Bukkit.getPluginManager().getPlugin("BlockGravity"),
-				() -> {
-					handleBlockRemoved(event.getBlock());
-				}, 4);
+				() -> handleBlockRemoved(event.getBlock()), 4);
 	}
 
 	@EventHandler(priority = EventPriority.LOW)
@@ -138,21 +136,22 @@ public class BlockListener implements Listener {
 			}
 		}
 
-		// Additional checks for blocks that break when the block below them breaks: doors, others? signs?
-		// These need to be the last blocks checked so the ones below can be turned to air if necessary
-		// todo unnecessary if the destroyed block is not a tall block or one that breaks in response to a nearby block breaking
-		surroundingBlocks.add(destroyed.getRelative(BlockFace.UP, 2)); // necessary if bottom block of door is broken
-		surroundingBlocks.add(destroyed.getRelative(BlockFace.UP, 3)); // necessary if block below a door is broken
-
 		surroundingBlocks
 				.stream()
-				// Filter to non-air blocks that are not supported directly or by neighbors
-				.filter(block -> block.getType().isSolid() && block.getY() > 0
-						&& !isSupported(block, destroyed) && !isSupportedByNeighbors(block, destroyed))
+				// Select the surrounding blocks which are above bottom of world and can be built upon
+				.filter(block -> block.getY() > 0 && isSupportiveBlock(block))
+				// Of those blocks, filter further to those which are not supported directly or by neighbors
+				.filter(block -> !isSupported(block, destroyed) && !isSupportedByNeighbors(block, destroyed))
+				// Surrounding blocks meeting the above conditions should spawn falling blocks in their place
 				.forEach(block -> {
-					// This block is no longer supported - spawn a falling block in its place and remove it
+					// This block is no longer supported - spawn a falling block in its place
 					FallingBlock fallingBlock = block.getWorld().spawnFallingBlock(block.getLocation().add(0.5, 0, 0.5), block.getType(), block.getData());
-					block.setType(Material.AIR);
+					if (!permittedToFall(fallingBlock)) {
+						// If not permitted to fall, remove the falling entity from the world
+						// Effectively the block will just disappear
+						fallingBlock.remove();
+					}
+					block.setType(Material.AIR); // todo to fully comply with eventing this statement should occur after the EntityChangeBlockEvent is triggered
 					Bukkit.getServer().getPluginManager().callEvent(new EntityChangeBlockEvent(fallingBlock, block, Material.AIR, block.getData()));
 				});
 	}
@@ -169,8 +168,8 @@ public class BlockListener implements Listener {
 			if (destroyedBlock != null && destroyedBlock.getLocation().equals(checking.getLocation())) {
 				continue;
 			}
-			if (!checking.getType().isSolid()) {
-				continue; // this direction is broken by non-solid block
+			if (!isSupportiveBlock(checking)) {
+				continue; // this direction is broken by non-supportive block
 			}
 			// Possible support block is solid, but is it supported?
 			if (isSupported(checking, destroyedBlock)) {
@@ -178,19 +177,19 @@ public class BlockListener implements Listener {
 			}
 			// Allow diagonal blocks to be the support they are within 1 distance
 			Block diagonalBlock = block.getRelative(support.assistingDirections.get(0), 1);
-			if (diagonalBlock.getType().isSolid() && isSupported(diagonalBlock, destroyedBlock)) {
+			if (isSupportiveBlock(diagonalBlock) && isSupported(diagonalBlock, destroyedBlock)) {
 				return true;
 			}
 			diagonalBlock = block.getRelative(support.assistingDirections.get(1), 1);
-			if (diagonalBlock.getType().isSolid() && isSupported(diagonalBlock, destroyedBlock)) {
+			if (isSupportiveBlock(diagonalBlock) && isSupported(diagonalBlock, destroyedBlock)) {
 				return true;
 			}
 			diagonalBlock = block.getRelative(support.assistingDirections.get(2), 1);
-			if (diagonalBlock.getType().isSolid() && isSupported(diagonalBlock, destroyedBlock)) {
+			if (isSupportiveBlock(diagonalBlock) && isSupported(diagonalBlock, destroyedBlock)) {
 				return true;
 			}
 			diagonalBlock = block.getRelative(support.assistingDirections.get(3), 1);
-			if (diagonalBlock.getType().isSolid() && isSupported(diagonalBlock, destroyedBlock)) {
+			if (isSupportiveBlock(diagonalBlock) && isSupported(diagonalBlock, destroyedBlock)) {
 				return true;
 			}
 
@@ -199,8 +198,8 @@ public class BlockListener implements Listener {
 			if (destroyedBlock != null && destroyedBlock.getLocation().equals(checking.getLocation())) {
 				continue;
 			}
-			if (!checking.getType().isSolid()) {
-				continue; // this direction is broken by non-solid block
+			if (!isSupportiveBlock(checking)) {
+				continue; // this direction is broken by non-supportive block
 			}
 			// Possible support block is solid, but is it supported?
 			if (isSupported(checking, destroyedBlock)) {
@@ -212,8 +211,8 @@ public class BlockListener implements Listener {
 			if (destroyedBlock != null && destroyedBlock.getLocation().equals(checking.getLocation())) {
 				continue;
 			}
-			if (!checking.getType().isSolid()) {
-				continue; // this direction is broken by non-solid block
+			if (!isSupportiveBlock(checking)) {
+				continue; // this direction is broken by non-supportive block
 			}
 			// Possible support block is solid, but is it supported?
 			if (isSupported(checking, destroyedBlock)) {
@@ -237,15 +236,45 @@ public class BlockListener implements Listener {
 		if (destroyed != null && destroyed.getLocation().equals(belowBlock.getLocation())) {
 			return false; // Treat destroyedBlock as air
 		}
-		return belowBlock.getType().isSolid();
+		return isSupportiveBlock(belowBlock);
 	}
 
 	private boolean isSupported(Block block) {
 		return isSupported(block, null);
 	}
 
-	class BlockSupport {
+	// A block is "supportive" (it can be built upon or next to) when it is solid and does not become an entity (like a door)
+	private boolean isSupportiveBlock(Block block) {
+		if (!block.getType().isSolid()) return false; // Cannot be supportive if not solid
 
+		// Some blocks are solid but we won't allow them to support other blocks
+		switch (block.getType()) {
+			case ACACIA_DOOR:
+			case DARK_OAK_DOOR:
+			case BIRCH_DOOR:
+			case IRON_DOOR:
+			case JUNGLE_DOOR:
+			case SPRUCE_DOOR:
+			case WOOD_DOOR:
+			case WOODEN_DOOR:
+				// These are blocks that become entities when the block below them is removed
+				return false;
+			default:
+				return true;
+		}
+	}
+
+	// Some falling blocks are of materials not normally acquirable by players
+	private boolean permittedToFall(FallingBlock fallingBlock) {
+		switch (fallingBlock.getMaterial()) {
+			case BEDROCK:
+				return false;
+			default:
+				return true;
+		}
+	}
+
+	class BlockSupport {
 		final BlockFace direction;
 		final List<BlockFace> assistingDirections;
 
