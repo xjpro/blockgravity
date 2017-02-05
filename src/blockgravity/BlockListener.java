@@ -132,16 +132,10 @@ public class BlockListener implements Listener {
 			Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () -> handleBlockRemoved(event.getBlock()), 0);
 		}
 		// There are also special cases where a falling block will be converting to a block that we will not allow
-		else if (event.getEntityType() == EntityType.FALLING_BLOCK) {
-			// If the falling block is of a type that is not permitted to land, cancel landing
-			if (!isPermittedToLand((FallingBlock) event.getEntity())) {
-				event.setCancelled(true);
-			}
+		else if (event.getEntityType() == EntityType.FALLING_BLOCK && !isSupported(event.getBlock())) {
 			// If the falling block is going to land on a non-supportive block, spawn an item in its place instead
-			else if (!isSupported(event.getBlock())) {
-				event.setCancelled(true);
-				event.getBlock().getWorld().dropItemNaturally(event.getBlock().getLocation().add(0.5, 0, 0.5), new ItemStack(event.getTo()));
-			}
+			event.setCancelled(true);
+			event.getBlock().getWorld().dropItemNaturally(event.getBlock().getLocation().add(0.5, 0, 0.5), new ItemStack(event.getTo()));
 		}
 	}
 
@@ -173,6 +167,11 @@ public class BlockListener implements Listener {
 					Bukkit.getServer().getPluginManager().callEvent(new EntityChangeBlockEvent(fallingBlock, block, Material.AIR, block.getData()));
 					// We should always change the block's type after we've called the EntityChangeBlockEvent so its consistent with other Minecraft events
 					block.setType(Material.AIR);
+
+					// Remove the falling block entity for any blocks that should not land
+					if (!isPermittedToLand(fallingBlock)) {
+						fallingBlock.remove();
+					}
 				});
 	}
 
