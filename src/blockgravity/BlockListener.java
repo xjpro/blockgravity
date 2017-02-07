@@ -117,9 +117,23 @@ public class BlockListener implements Listener {
 	}
 
 	@EventHandler(priority = EventPriority.LOW)
+	public void onBlockPistonExtend(BlockPistonExtendEvent event) {
+		if (event.isCancelled()) return;
+
+		ArrayList<Block> extendedBlocks = new ArrayList<>();
+		for (int i = 2; i <= 13; i++) {
+			extendedBlocks.add(event.getBlock().getRelative(event.getDirection(), i));
+		}
+
+		Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () -> {
+			checkBlocks(extendedBlocks, null);
+		}, 4);
+	}
+
+	@EventHandler(priority = EventPriority.LOW)
 	public void onBlockPistonRetract(BlockPistonRetractEvent event) {
 		if (event.isCancelled()) return;
-		Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () -> handleBlockRemoved(event.getBlock()), 4);
+		Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () -> handleBlockRemoved(event.getBlock().getRelative(event.getDirection())), 4);
 	}
 
 	@EventHandler(priority = EventPriority.LOW)
@@ -153,8 +167,12 @@ public class BlockListener implements Listener {
 				surroundingBlocks.add(destroyed.getRelative(x, 1, z));
 			}
 		}
+		checkBlocks(surroundingBlocks, destroyed);
+	}
 
-		surroundingBlocks
+	// Check a list of blocks for gravity
+	private void checkBlocks(List<Block> blocks, Block destroyed) {
+		blocks
 				.stream()
 				// Select the surrounding blocks which are above bottom of world and can be built upon
 				.filter(block -> block.getY() > 0 && isSupportiveBlock(block))
