@@ -180,6 +180,8 @@ public class BlockListener implements Listener {
 				// Surrounding blocks meeting the above conditions should spawn falling blocks in their place
 				.forEach(blocksToCheck::add);
 
+		// todo feels slow having them always added to the queue and processed next tick, perhaps change so it only does so when it's getting overwhelmed
+
 		processQueuedFallingBlocks(); // We've added blocks, spin up the processing task
 	}
 
