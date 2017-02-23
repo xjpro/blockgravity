@@ -20,7 +20,7 @@ import java.util.*;
 
 public class BlockListener implements Listener {
 
-	private static int MAXIMUIM_FALLS_PER_TICK = 10;
+	private static int MAXIMUIM_FALLS_PER_TICK = 50;
 
 	private final Plugin plugin;
 	private final Stack<Block> blocksToCheck = new Stack<>();
@@ -185,12 +185,12 @@ public class BlockListener implements Listener {
 
 	@SuppressWarnings("deprecation")
 	private void processQueuedFallingBlocks() {
-		if (processingTaskId == 0) return; // Already processing
+		if (processingTaskId != 0) return; // Already processing
 
 		processingTaskId = Bukkit.getScheduler().scheduleSyncRepeatingTask(plugin, () -> {
-			Block block;
 			int i = 0;
-			while (i++ < MAXIMUIM_FALLS_PER_TICK && (block = blocksToCheck.pop()) != null) {
+			while (i++ < MAXIMUIM_FALLS_PER_TICK && blocksToCheck.size() > 0) {
+				Block block = blocksToCheck.pop();
 				// This block is no longer supported - spawn a falling block in its place
 				FallingBlock fallingBlock = block.getWorld().spawnFallingBlock(block.getLocation().add(0.5, 0, 0.5), block.getType(), block.getData());
 				// By calling a new EntityChangeBlockEvent we propagate the falling to surrounding blocks
@@ -211,7 +211,7 @@ public class BlockListener implements Listener {
 			}
 
 			// Otherwise, the task will process the next batch on next tick
-		}, 0, 1);
+		}, 0, 0);
 	}
 
 	/*
