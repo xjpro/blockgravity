@@ -16,13 +16,15 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 public class BlockListener implements Listener {
 
+	private static int MAXIMUIM_FALLS_PER_TICK = 10;
+
 	private final Plugin plugin;
+	private final Stack<Block> blocksToCheck = new Stack<>();
+	private int processingTaskId = 0;
 
 	BlockListener(Plugin plugin) {
 		this.plugin = plugin;
@@ -125,9 +127,7 @@ public class BlockListener implements Listener {
 			extendedBlocks.add(event.getBlock().getRelative(event.getDirection(), i));
 		}
 
-		Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () -> {
-			checkBlocks(extendedBlocks, null);
-		}, 4);
+		Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () -> checkAndProcessUnsupportedBlocks(extendedBlocks, null), 4);
 	}
 
 	@EventHandler(priority = EventPriority.LOW)
@@ -153,7 +153,6 @@ public class BlockListener implements Listener {
 		}
 	}
 
-	@SuppressWarnings("deprecation")
 	private void handleBlockRemoved(Block destroyed) {
 		List<Block> surroundingBlocks = new ArrayList<>();
 		surroundingBlocks.add(destroyed.getRelative(BlockFace.NORTH));
@@ -167,11 +166,11 @@ public class BlockListener implements Listener {
 				surroundingBlocks.add(destroyed.getRelative(x, 1, z));
 			}
 		}
-		checkBlocks(surroundingBlocks, destroyed);
+		checkAndProcessUnsupportedBlocks(surroundingBlocks, destroyed);
 	}
 
 	// Check a list of blocks for gravity
-	private void checkBlocks(List<Block> blocks, Block destroyed) {
+	private void checkAndProcessUnsupportedBlocks(List<Block> blocks, Block destroyed) {
 		blocks
 				.stream()
 				// Select the surrounding blocks which are above bottom of world and can be built upon
@@ -179,18 +178,40 @@ public class BlockListener implements Listener {
 				// Of those blocks, filter further to those which are not supported directly or by neighbors
 				.filter(block -> !isSupported(block, destroyed) && !isSupportedByNeighbors(block, destroyed))
 				// Surrounding blocks meeting the above conditions should spawn falling blocks in their place
-				.forEach(block -> {
-					// This block is no longer supported - spawn a falling block in its place
-					FallingBlock fallingBlock = block.getWorld().spawnFallingBlock(block.getLocation().add(0.5, 0, 0.5), block.getType(), block.getData());
-					Bukkit.getServer().getPluginManager().callEvent(new EntityChangeBlockEvent(fallingBlock, block, Material.AIR, block.getData()));
-					// We should always change the block's type after we've called the EntityChangeBlockEvent so its consistent with other Minecraft events
-					block.setType(Material.AIR);
+				.forEach(blocksToCheck::add);
 
-					// Remove the falling block entity for any blocks that should not land
-					if (!isPermittedToLand(fallingBlock)) {
-						fallingBlock.remove();
-					}
-				});
+		processQueuedFallingBlocks(); // We've added blocks, spin up the processing task
+	}
+
+	@SuppressWarnings("deprecation")
+	private void processQueuedFallingBlocks() {
+		if (processingTaskId == 0) return; // Already processing
+
+		processingTaskId = Bukkit.getScheduler().scheduleSyncRepeatingTask(plugin, () -> {
+			Block block;
+			int i = 0;
+			while (i++ < MAXIMUIM_FALLS_PER_TICK && (block = blocksToCheck.pop()) != null) {
+				// This block is no longer supported - spawn a falling block in its place
+				FallingBlock fallingBlock = block.getWorld().spawnFallingBlock(block.getLocation().add(0.5, 0, 0.5), block.getType(), block.getData());
+				// By calling a new EntityChangeBlockEvent we propagate the falling to surrounding blocks
+				Bukkit.getServer().getPluginManager().callEvent(new EntityChangeBlockEvent(fallingBlock, block, Material.AIR, block.getData()));
+				// We should always change the block's type after we've called the EntityChangeBlockEvent so its consistent with other Minecraft events
+				block.setType(Material.AIR);
+
+				// Remove the falling block entity for any blocks that should not land
+				if (!isPermittedToLand(fallingBlock)) {
+					fallingBlock.remove();
+				}
+			}
+
+			// If we've run out of blocks to process, end the task and clear the task id
+			if (blocksToCheck.size() == 0) {
+				Bukkit.getScheduler().cancelTask(processingTaskId);
+				processingTaskId = 0;
+			}
+
+			// Otherwise, the task will process the next batch on next tick
+		}, 0, 1);
 	}
 
 	/*
