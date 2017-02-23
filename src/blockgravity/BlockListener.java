@@ -192,6 +192,7 @@ public class BlockListener implements Listener {
 			while (i++ < MAXIMUIM_FALLS_PER_TICK && blocksToCheck.size() > 0) {
 				Block block = blocksToCheck.pop();
 				// This block is no longer supported - spawn a falling block in its place
+				// todo appears that if the player leaves the area, the falling blocks can spawn as sand?
 				FallingBlock fallingBlock = block.getWorld().spawnFallingBlock(block.getLocation().add(0.5, 0, 0.5), block.getType(), block.getData());
 				// By calling a new EntityChangeBlockEvent we propagate the falling to surrounding blocks
 				Bukkit.getServer().getPluginManager().callEvent(new EntityChangeBlockEvent(fallingBlock, block, Material.AIR, block.getData()));
