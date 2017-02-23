@@ -20,7 +20,7 @@ import java.util.*;
 
 public class BlockListener implements Listener {
 
-	private static int MAXIMUIM_FALLS_PER_TICK = 50;
+	private static int MAXIMUIM_FALLS_PER_TICK = 100;
 
 	private final Plugin plugin;
 	private final Stack<Block> blocksToCheck = new Stack<>();
