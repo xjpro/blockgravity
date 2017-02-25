@@ -20,7 +20,8 @@ import java.util.*;
 
 public class BlockListener implements Listener {
 
-	private static int MAXIMUIM_FALLS_PER_TICK = 100;
+	private static int MAX_FALLS_ON_EVENT = 20;
+	private static int MAX_FALLS_PER_TICK = 100;
 
 	private final Plugin plugin;
 	private final Stack<Block> fallingBlockQueue = new Stack<>();
@@ -183,7 +184,7 @@ public class BlockListener implements Listener {
 		// Iterate through unsupportedBlocks, making them fall immediately unless
 		// our cap is exceeded in which case add them to queue to be processed later
 		for (int i = 0; i < unsupportedBlocks.length; i++) {
-			if (i < MAXIMUIM_FALLS_PER_TICK && fallingBlockQueue.size() < MAXIMUIM_FALLS_PER_TICK) {
+			if (i < MAX_FALLS_ON_EVENT && fallingBlockQueue.size() < MAX_FALLS_ON_EVENT) {
 				makeBlockFall(unsupportedBlocks[i]);
 			} else {
 				fallingBlockQueue.add(unsupportedBlocks[i]);
@@ -200,7 +201,7 @@ public class BlockListener implements Listener {
 
 		processingTaskId = Bukkit.getScheduler().scheduleSyncRepeatingTask(plugin, () -> {
 			int i = 0;
-			while (i++ < MAXIMUIM_FALLS_PER_TICK && fallingBlockQueue.size() > 0) {
+			while (i++ < MAX_FALLS_PER_TICK && fallingBlockQueue.size() > 0) {
 				makeBlockFall(fallingBlockQueue.pop());
 			}
 
