@@ -23,7 +23,7 @@ public class BlockListener implements Listener {
 	private static int MAXIMUIM_FALLS_PER_TICK = 100;
 
 	private final Plugin plugin;
-	private final Stack<Block> blocksToCheck = new Stack<>();
+	private final Stack<Block> fallingBlockQueue = new Stack<>();
 	private int processingTaskId = 0;
 
 	BlockListener(Plugin plugin) {
@@ -170,51 +170,63 @@ public class BlockListener implements Listener {
 	}
 
 	// Check a list of blocks for gravity
-	private void checkAndProcessUnsupportedBlocks(List<Block> blocks, Block destroyed) {
-		blocks
+	private void checkAndProcessUnsupportedBlocks(List<Block> blocksToCheck, Block destroyed) {
+		// Gather blocks that are no longer supported
+		Block[] unsupportedBlocks = blocksToCheck
 				.stream()
 				// Select the surrounding blocks which are above bottom of world and can be built upon
 				.filter(block -> block.getY() > 0 && isSupportiveBlock(block))
 				// Of those blocks, filter further to those which are not supported directly or by neighbors
 				.filter(block -> !isSupported(block, destroyed) && !isSupportedByNeighbors(block, destroyed))
-				// Surrounding blocks meeting the above conditions should spawn falling blocks in their place
-				.forEach(blocksToCheck::add);
+				.toArray(Block[]::new);
 
-		// todo feels slow having them always added to the queue and processed next tick, perhaps change so it only does so when it's getting overwhelmed
+		// Iterate through unsupportedBlocks, making them fall immediately unless
+		// our cap is exceeded in which case add them to queue to be processed later
+		for (int i = 0; i < unsupportedBlocks.length; i++) {
+			if (i < MAXIMUIM_FALLS_PER_TICK && fallingBlockQueue.size() < MAXIMUIM_FALLS_PER_TICK) {
+				makeBlockFall(unsupportedBlocks[i]);
+			} else {
+				fallingBlockQueue.add(unsupportedBlocks[i]);
+			}
+		}
 
-		processQueuedFallingBlocks(); // We've added blocks, spin up the processing task
+		processQueuedFallingBlocks(); // Spin up the processing task
 	}
 
 	@SuppressWarnings("deprecation")
 	private void processQueuedFallingBlocks() {
+		if (fallingBlockQueue.size() == 0) return; // Nothing to process
 		if (processingTaskId != 0) return; // Already processing
 
 		processingTaskId = Bukkit.getScheduler().scheduleSyncRepeatingTask(plugin, () -> {
 			int i = 0;
-			while (i++ < MAXIMUIM_FALLS_PER_TICK && blocksToCheck.size() > 0) {
-				Block block = blocksToCheck.pop();
-				// This block is no longer supported - spawn a falling block in its place
-				// todo appears that if the player leaves the area, the falling blocks can spawn as sand?
-				FallingBlock fallingBlock = block.getWorld().spawnFallingBlock(block.getLocation().add(0.5, 0, 0.5), block.getType(), block.getData());
-				// By calling a new EntityChangeBlockEvent we propagate the falling to surrounding blocks
-				Bukkit.getServer().getPluginManager().callEvent(new EntityChangeBlockEvent(fallingBlock, block, Material.AIR, block.getData()));
-				// We should always change the block's type after we've called the EntityChangeBlockEvent so its consistent with other Minecraft events
-				block.setType(Material.AIR);
-
-				// Remove the falling block entity for any blocks that should not land
-				if (!isPermittedToLand(fallingBlock)) {
-					fallingBlock.remove();
-				}
+			while (i++ < MAXIMUIM_FALLS_PER_TICK && fallingBlockQueue.size() > 0) {
+				makeBlockFall(fallingBlockQueue.pop());
 			}
 
 			// If we've run out of blocks to process, end the task and clear the task id
-			if (blocksToCheck.size() == 0) {
+			if (fallingBlockQueue.size() == 0) {
 				Bukkit.getScheduler().cancelTask(processingTaskId);
 				processingTaskId = 0;
 			}
 
 			// Otherwise, the task will process the next batch on next tick
 		}, 0, 0);
+	}
+
+	private void makeBlockFall(Block block) {
+		// This block is no longer supported - spawn a falling block in its place
+		// todo appears that if the player leaves the area, the falling blocks can spawn as sand?
+		FallingBlock fallingBlock = block.getWorld().spawnFallingBlock(block.getLocation().add(0.5, 0, 0.5), block.getType(), block.getData());
+		// By calling a new EntityChangeBlockEvent we propagate the falling to surrounding blocks
+		Bukkit.getServer().getPluginManager().callEvent(new EntityChangeBlockEvent(fallingBlock, block, Material.AIR, block.getData()));
+		// We should always change the block's type after we've called the EntityChangeBlockEvent so its consistent with other Minecraft events
+		block.setType(Material.AIR);
+
+		// Remove the falling block entity for any blocks that should not land
+		if (!isPermittedToLand(fallingBlock)) {
+			fallingBlock.remove();
+		}
 	}
 
 	/*
