@@ -20,7 +20,7 @@ import java.util.*;
 
 public class BlockListener implements Listener {
 
-	private static int MAX_FALLS_ON_EVENT = 20;
+	private static int MAX_FALLS_ON_EVENT = 10;
 	private static int MAX_FALLS_PER_TICK = 100;
 
 	private final Plugin plugin;
@@ -194,7 +194,6 @@ public class BlockListener implements Listener {
 		processQueuedFallingBlocks(); // Spin up the processing task
 	}
 
-	@SuppressWarnings("deprecation")
 	private void processQueuedFallingBlocks() {
 		if (fallingBlockQueue.size() == 0) return; // Nothing to process
 		if (processingTaskId != 0) return; // Already processing
@@ -215,18 +214,30 @@ public class BlockListener implements Listener {
 		}, 0, 0);
 	}
 
+	// Block is no longer supported - spawn a falling block in its place
+	// todo appears blocks can be converted to sand if the player leaves the area?
+	@SuppressWarnings("deprecation")
 	private void makeBlockFall(Block block) {
-		// This block is no longer supported - spawn a falling block in its place
-		// todo appears that if the player leaves the area, the falling blocks can spawn as sand?
 		FallingBlock fallingBlock = block.getWorld().spawnFallingBlock(block.getLocation().add(0.5, 0, 0.5), block.getType(), block.getData());
-		// By calling a new EntityChangeBlockEvent we propagate the falling to surrounding blocks
-		Bukkit.getServer().getPluginManager().callEvent(new EntityChangeBlockEvent(fallingBlock, block, Material.AIR, block.getData()));
-		// We should always change the block's type after we've called the EntityChangeBlockEvent so its consistent with other Minecraft events
-		block.setType(Material.AIR);
+		// Note that we create the falling block entity even in cases where we will be immediately removing it from
+		// the game world (bedrock, leaves) because we need to pass it along in the EntityChangeBlockEvent
 
-		// Remove the falling block entity for any blocks that should not land
-		if (!isPermittedToLand(fallingBlock)) {
+		// By calling a new EntityChangeBlockEvent we propagate falling to surrounding blocks
+		Bukkit.getServer().getPluginManager().callEvent(new EntityChangeBlockEvent(fallingBlock, block, Material.AIR, block.getData()));
+
+		// We should always change the block's type AFTER we've called the EntityChangeBlockEvent to be consistent with other Minecraft events
+		if (shouldSpawnItemInsteadOfFalling(fallingBlock)) {
+			// Drop an item instead of having a falling block
+			block.breakNaturally();
 			fallingBlock.remove();
+		} else {
+			block.setType(Material.AIR); // Remove original block from the game world entirely
+			// A falling block has now taken its place, unless...
+
+			if (shouldDisappearInsteadOfFalling(fallingBlock)) {
+				// Remove the falling block entity for any blocks that should not land
+				fallingBlock.remove();
+			}
 		}
 	}
 
@@ -338,13 +349,24 @@ public class BlockListener implements Listener {
 		}
 	}
 
-	// Some falling blocks are of materials not normally acquirable by players
-	private boolean isPermittedToLand(FallingBlock fallingBlock) {
+	// Some blocks should spawn an item when affected by gravity
+	private boolean shouldSpawnItemInsteadOfFalling(FallingBlock fallingBlock) {
+		switch (fallingBlock.getMaterial()) {
+			case LEAVES:
+			case LEAVES_2:
+				return true;
+			default:
+				return false;
+		}
+	}
+
+	// Some blocks should disappear from the game world when affected by gravity
+	private boolean shouldDisappearInsteadOfFalling(FallingBlock fallingBlock) {
 		switch (fallingBlock.getMaterial()) {
 			case BEDROCK:
-				return false;
-			default:
 				return true;
+			default:
+				return false;
 		}
 	}
 
