@@ -1,5 +1,6 @@
 package blockgravity;
 
+import blockgravity.listener.BlockListener;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
