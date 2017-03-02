@@ -6,6 +6,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.FallingBlock;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
 import java.util.ArrayList;
@@ -97,16 +98,15 @@ public class FallingBlockService {
 
 		// By calling a new EntityChangeBlockEvent we propagate falling to surrounding blocks
 		Bukkit.getServer().getPluginManager().callEvent(new EntityChangeBlockEvent(fallingBlock, block, Material.AIR, block.getData()));
-
 		// We should always change the block's type AFTER we've called the EntityChangeBlockEvent to be consistent with other Minecraft events
+		block.setType(Material.AIR);
+
 		if (shouldSpawnItemInsteadOfFalling(fallingBlock)) {
 			// Drop an item instead of having a falling block
-			block.breakNaturally();
+			block.getWorld().dropItemNaturally(fallingBlock.getLocation(), new ItemStack(fallingBlock.getMaterial()));
 			fallingBlock.remove();
 		} else {
-			block.setType(Material.AIR); // Remove original block from the game world entirely
 			// A falling block has now taken its place, unless...
-
 			if (shouldDisappearInsteadOfFalling(fallingBlock)) {
 				// Remove the falling block entity for any blocks that should not land
 				fallingBlock.remove();
@@ -116,13 +116,7 @@ public class FallingBlockService {
 
 	// Some blocks should spawn an item when affected by gravity
 	private boolean shouldSpawnItemInsteadOfFalling(FallingBlock fallingBlock) {
-		switch (fallingBlock.getMaterial()) {
-			case LEAVES:
-			case LEAVES_2:
-				return true;
-			default:
-				return false;
-		}
+		return false;
 	}
 
 	// Some blocks should disappear from the game world when affected by gravity
