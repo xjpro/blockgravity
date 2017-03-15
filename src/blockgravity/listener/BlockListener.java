@@ -5,6 +5,7 @@ import blockgravity.service.SupportCheckService;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.entity.EntityType;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -106,10 +107,32 @@ public class BlockListener implements Listener {
 			Bukkit.getScheduler().scheduleSyncDelayedTask(plugin, () -> fallingBlockService.handleBlockRemoved(event.getBlock()), 0);
 		}
 		// There are also special cases where a falling block will be converting to a block that we will not allow
-		else if (event.getEntityType() == EntityType.FALLING_BLOCK && !supportCheckService.isSupported(event.getBlock())) {
-			// If the falling block is going to land on a non-supportive block, spawn an item in its place instead
-			event.setCancelled(true);
-			event.getBlock().getWorld().dropItemNaturally(event.getBlock().getLocation().add(0.5, 0, 0.5), new ItemStack(event.getTo()));
+		else if (event.getEntityType() == EntityType.FALLING_BLOCK) {
+			Block landingOn = event.getBlock().getRelative(BlockFace.DOWN);
+
+			if (!supportCheckService.isSupported(event.getBlock())) {
+				// If the falling block is going to land on a non-supportive block, spawn an item in its place instead
+				event.setCancelled(true);
+				event.getBlock().getWorld().dropItemNaturally(event.getBlock().getLocation().add(0.5, 0, 0.5), new ItemStack(event.getTo()));
+			} else if (isVanillaFallingBlock(event.getTo()) && isVanillaFallingBlock(landingOn.getType())) {
+				// If a vanilla falling block is landing on another vanilla falling block, combine both into a solid block
+				event.setCancelled(true);
+				if (event.getTo() == Material.SAND && landingOn.getType() == Material.SAND) {
+					landingOn.setType(Material.SANDSTONE);
+				} else {
+					landingOn.setType(Material.COBBLESTONE);
+				}
+			}
+		}
+	}
+
+	private boolean isVanillaFallingBlock(Material type) {
+		switch (type) {
+			case SAND:
+			case GRAVEL:
+				return true;
+			default:
+				return false;
 		}
 	}
 }
