@@ -18,6 +18,9 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 public class BlockListener implements Listener {
 
@@ -115,12 +118,63 @@ public class BlockListener implements Listener {
 				event.setCancelled(true);
 				event.getBlock().getWorld().dropItemNaturally(event.getBlock().getLocation().add(0.5, 0, 0.5), new ItemStack(event.getTo()));
 			} else if (isVanillaFallingBlock(event.getTo()) && isVanillaFallingBlock(landingOn.getType())) {
-				// If a vanilla falling block is landing on another vanilla falling block, combine both into a solid block
-				event.setCancelled(true);
-				if (event.getTo() == Material.SAND && landingOn.getType() == Material.SAND) {
-					landingOn.setType(Material.SANDSTONE);
-				} else {
-					landingOn.setType(Material.COBBLESTONE);
+
+				// !!!!! Option 1 - unlimited spill area
+//				int currentHeightOfPile = 1;
+//				while (isVanillaFallingBlock(landingOn.getRelative(BlockFace.DOWN, currentHeightOfPile++).getType())) {
+//					// Each iteration of this means we've moved down a level, having not found any air blocks to fill at the previous level
+//
+//					int finalCurrentHeightOfPile = currentHeightOfPile;
+//					boolean found = WorldHelper.inCircle(landingOn.getX(), landingOn.getZ(), currentHeightOfPile * 2 + 1, (x, z) -> {
+//						Block block = landingOn.getWorld().getBlockAt(x, landingOn.getY() - finalCurrentHeightOfPile, z);
+//						if (block.getType() == Material.AIR) {
+//							// todo check if there's a block separating this block from center
+//
+//							event.setCancelled(true);
+//							block.setType(event.getTo());
+//							return true;
+//						}
+//						return false;
+//					});
+//
+//					if (found) break; // we found a spot, stop checking
+//				}
+//
+//				// If no air blocks were found then the event will be allowed to succeed, starting a new level
+
+
+				// !!!!! Option 2 - limited spill area
+//				List<BlockFace> spillDirections = Arrays.stream(BlockFace.values())
+//						.filter(blockFace -> blockFace != BlockFace.DOWN && blockFace != BlockFace.UP && blockFace != BlockFace.SELF)
+//						.collect(Collectors.toList());
+//
+//				// Make the selection of the spot random
+//				Collections.shuffle(spillDirections);
+//
+//				// Check landing area for air blocks
+//				for (BlockFace direction : spillDirections) {
+//					if (landingOn.getRelative(direction).getType() == Material.AIR) {
+//						event.setCancelled(true);
+//						landingOn.getRelative(direction).setType(event.getTo());
+//					}
+//				}
+//				// Otherwise the block will just land in place, starting a new level
+
+
+				// !!!!!! Option 3 - keep spawning new blocks til we stabilize
+				List<BlockFace> spillDirections = Arrays.asList(BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST);
+
+				// Make the selection of the spot random
+				Collections.shuffle(spillDirections);
+
+				// Check landing area for air blocks
+				for (BlockFace direction : spillDirections) {
+					if (landingOn.getRelative(direction).getType() == Material.AIR) {
+						event.setCancelled(true); // Cancel the landing
+
+						// Spawn a new falling block at the new location
+						landingOn.getWorld().spawnFallingBlock(landingOn.getRelative(direction).getLocation().add(0.5, 0, 0.5), event.getTo(), event.getData());
+					}
 				}
 			}
 		}
