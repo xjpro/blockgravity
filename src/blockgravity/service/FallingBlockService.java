@@ -51,6 +51,7 @@ public class FallingBlockService {
 				.stream()
 				// Select the surrounding blocks which are above bottom of world and can be built upon
 				.filter(block -> block.getY() > 0 && supportCheckService.isSupportiveBlock(block))
+				// todo filter out sand and gravel since they fall on their own?
 				// Of those blocks, filter further to those which are not supported directly or by neighbors
 				.filter(block -> !supportCheckService.isSupported(block, destroyed) && !supportCheckService.isSupportedByNeighbors(block, destroyed))
 				.toArray(Block[]::new);
