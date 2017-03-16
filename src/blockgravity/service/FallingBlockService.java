@@ -1,5 +1,7 @@
 package blockgravity.service;
 
+import blockgravity.BlockGravityPlugin;
+import net.coreprotect.CoreProtectAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -19,12 +21,14 @@ public class FallingBlockService {
 	private static int MAX_FALLS_PER_TICK = 100;
 
 	private final Plugin plugin;
+	private final CoreProtectAPI coreProtect;
 	private final SupportCheckService supportCheckService = new SupportCheckService();
 	private final Stack<Block> fallingBlockQueue = new Stack<>();
 	private int processingTaskId = 0;
 
-	public FallingBlockService(Plugin plugin) {
+	public FallingBlockService(BlockGravityPlugin plugin) {
 		this.plugin = plugin;
+		this.coreProtect = plugin.getCoreProtect();
 	}
 
 	// Check the area around a destroyed block for gravity
@@ -99,6 +103,7 @@ public class FallingBlockService {
 		// By calling a new EntityChangeBlockEvent we propagate falling to surrounding blocks
 		Bukkit.getServer().getPluginManager().callEvent(new EntityChangeBlockEvent(fallingBlock, block, Material.AIR, block.getData()));
 		// We should always change the block's type AFTER we've called the EntityChangeBlockEvent to be consistent with other Minecraft events
+		if (coreProtect != null) coreProtect.logRemoval(null, block.getLocation(), block.getType(), block.getData());
 		block.setType(Material.AIR);
 
 		if (shouldSpawnItemInsteadOfFalling(fallingBlock)) {

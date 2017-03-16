@@ -1,5 +1,6 @@
 package blockgravity.listener;
 
+import blockgravity.BlockGravityPlugin;
 import blockgravity.service.FallingBlockService;
 import blockgravity.service.SupportCheckService;
 import org.bukkit.Bukkit;
@@ -24,7 +25,7 @@ public class BlockListener implements Listener {
 	private final SupportCheckService supportCheckService = new SupportCheckService();
 	private final FallingBlockService fallingBlockService;
 
-	public BlockListener(Plugin plugin) {
+	public BlockListener(BlockGravityPlugin plugin) {
 		this.plugin = plugin;
 		this.fallingBlockService = new FallingBlockService(plugin);
 	}
