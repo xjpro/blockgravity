@@ -27,6 +27,7 @@ public class BlockListener implements Listener {
 	private final Plugin plugin;
 	private final SupportCheckService supportCheckService = new SupportCheckService();
 	private final FallingBlockService fallingBlockService;
+	private List<BlockFace> spillDirections = Arrays.asList(BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST);
 
 	public BlockListener(Plugin plugin) {
 		this.plugin = plugin;
@@ -118,8 +119,6 @@ public class BlockListener implements Listener {
 				event.setCancelled(true);
 				event.getBlock().getWorld().dropItemNaturally(event.getBlock().getLocation().add(0.5, 0, 0.5), new ItemStack(event.getTo()));
 			} else if (isVanillaFallingBlock(event.getTo()) && isVanillaFallingBlock(landingOn.getType())) {
-
-				List<BlockFace> spillDirections = Arrays.asList(BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST);
 
 				// Make the selection of the spot random
 				Collections.shuffle(spillDirections);
