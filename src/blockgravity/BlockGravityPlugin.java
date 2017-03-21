@@ -3,6 +3,8 @@ package blockgravity;
 import blockgravity.listener.BlockListener;
 import net.coreprotect.CoreProtect;
 import net.coreprotect.CoreProtectAPI;
+import org.bukkit.Material;
+import org.bukkit.block.Block;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -15,7 +17,19 @@ public class BlockGravityPlugin extends JavaPlugin {
 		manager.registerEvents(new BlockListener(this), this);
 	}
 
-	public CoreProtectAPI getCoreProtect() {
+	public void logFallingBlock(Block block) {
+		if (getCoreProtect() != null) {
+			getCoreProtect().logRemoval("BlockGravityPlugin", block.getLocation(), block.getType(), block.getData());
+		}
+	}
+
+	public void logLandingBlock(Block block, Material to) {
+		if (getCoreProtect() != null) {
+			getCoreProtect().logPlacement("BlockGravityPlugin", block.getLocation(), to, block.getData());
+		}
+	}
+
+	private CoreProtectAPI getCoreProtect() {
 		Plugin plugin = getServer().getPluginManager().getPlugin("CoreProtect");
 
 		// Check that CoreProtect is loaded

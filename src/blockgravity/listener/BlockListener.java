@@ -16,7 +16,6 @@ import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.plugin.Plugin;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -25,7 +24,7 @@ import java.util.List;
 
 public class BlockListener implements Listener {
 
-	private final Plugin plugin;
+	private final BlockGravityPlugin plugin;
 	private final SupportCheckService supportCheckService = new SupportCheckService();
 	private final FallingBlockService fallingBlockService;
 	private List<BlockFace> spillDirections = Arrays.asList(BlockFace.NORTH, BlockFace.EAST, BlockFace.SOUTH, BlockFace.WEST);
@@ -114,10 +113,11 @@ public class BlockListener implements Listener {
 		// There are also special cases where a falling block will be converting to a block that we will not allow
 		else if (event.getEntityType() == EntityType.FALLING_BLOCK) {
 			Block landingOn = event.getBlock().getRelative(BlockFace.DOWN);
+			boolean cancelled = false;
 
 			if (!supportCheckService.isSupported(event.getBlock())) {
 				// If the falling block is going to land on a non-supportive block, spawn an item in its place instead
-				event.setCancelled(true);
+				cancelled = true;
 				event.getBlock().getWorld().dropItemNaturally(event.getBlock().getLocation().add(0.5, 0, 0.5), new ItemStack(event.getTo()));
 			} else if (isVanillaFallingBlock(event.getTo()) && isVanillaFallingBlock(landingOn.getType())) {
 
@@ -127,13 +127,19 @@ public class BlockListener implements Listener {
 				// Check landing area for air blocks
 				for (BlockFace direction : spillDirections) {
 					if (landingOn.getRelative(direction).getType() == Material.AIR) {
-						event.setCancelled(true); // Cancel the landing
+						cancelled = true;
 
 						// Spawn a new falling block at the new location
 						landingOn.getWorld().spawnFallingBlock(landingOn.getRelative(direction).getLocation().add(0.5, 0, 0.5), event.getTo(), event.getData());
 						break;
 					}
 				}
+			}
+
+			if (cancelled) {
+				event.setCancelled(true); // Cancel the landing
+			} else {
+				plugin.logLandingBlock(event.getBlock(), event.getTo());
 			}
 		}
 	}
