@@ -98,7 +98,7 @@ public class FallingBlockService {
 		// the game world (bedrock, leaves) because we need to pass it along in the EntityChangeBlockEvent
 
 		// By calling a new EntityChangeBlockEvent we propagate falling to surrounding blocks
-		Bukkit.getServer().getPluginManager().callEvent(new EntityChangeBlockEvent(fallingBlock, block, Material.AIR, block.getData()));
+		Bukkit.getServer().getPluginManager().callEvent(new EntityChangeBlockEvent(fallingBlock, block, block.getBlockData()));
 		// We should always change the block's type AFTER we've called the EntityChangeBlockEvent to be consistent with other Minecraft events
 		plugin.logFallingBlock(block);
 		block.setType(Material.AIR);

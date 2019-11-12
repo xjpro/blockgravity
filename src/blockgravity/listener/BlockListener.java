@@ -130,7 +130,7 @@ public class BlockListener implements Listener {
 						cancelled = true;
 
 						// Spawn a new falling block at the new location
-						landingOn.getWorld().spawnFallingBlock(landingOn.getRelative(direction).getLocation().add(0.5, 0, 0.5), event.getTo(), event.getData());
+						landingOn.getWorld().spawnFallingBlock(landingOn.getRelative(direction).getLocation().add(0.5, 0, 0.5), event.getBlockData());
 						break;
 					}
 				}
