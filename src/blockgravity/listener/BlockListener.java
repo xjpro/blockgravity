@@ -77,7 +77,7 @@ public class BlockListener implements Listener {
 		if (event.isCancelled()) return;
 		if (event.getAction() == Action.RIGHT_CLICK_BLOCK && event.getMaterial() == Material.FLINT_AND_STEEL) {
 			Block clicked = event.getClickedBlock();
-			if (clicked.getType() == Material.TNT) {
+			if (clicked != null && clicked.getType() == Material.TNT) {
 				fallingBlockService.handleBlockRemoved(clicked);
 			}
 		}

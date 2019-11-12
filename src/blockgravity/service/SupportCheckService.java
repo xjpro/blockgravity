@@ -8,7 +8,7 @@ import java.util.List;
 
 public class SupportCheckService {
 
-	class BlockSupport {
+	static class BlockSupport {
 		final BlockFace direction;
 		final List<BlockFace> assistingDirections;
 
@@ -132,7 +132,7 @@ public class SupportCheckService {
 	block - block to check if supported
 	destroyedBlock - the block being destroyed, treat as air
 	 */
-	public boolean isSupported(Block block, Block destroyed) {
+	boolean isSupported(Block block, Block destroyed) {
 		Block belowBlock = block.getRelative(BlockFace.DOWN);
 		if (destroyed != null && destroyed.getLocation().equals(belowBlock.getLocation())) {
 			return false; // Treat destroyedBlock as air

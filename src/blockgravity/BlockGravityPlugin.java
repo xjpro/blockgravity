@@ -33,7 +33,7 @@ public class BlockGravityPlugin extends JavaPlugin {
 		Plugin plugin = getServer().getPluginManager().getPlugin("CoreProtect");
 
 		// Check that CoreProtect is loaded
-		if (plugin == null || !(plugin instanceof CoreProtect)) {
+		if (!(plugin instanceof CoreProtect)) {
 			return null;
 		}
 

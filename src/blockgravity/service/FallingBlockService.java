@@ -103,7 +103,7 @@ public class FallingBlockService {
 		plugin.logFallingBlock(block);
 		block.setType(Material.AIR);
 
-		if (shouldSpawnItemInsteadOfFalling(fallingBlock)) {
+		if (shouldSpawnItemInsteadOfFalling()) {
 			// Drop an item instead of having a falling block
 			block.getWorld().dropItemNaturally(fallingBlock.getLocation(), new ItemStack(fallingBlock.getMaterial()));
 			fallingBlock.remove();
@@ -117,17 +117,12 @@ public class FallingBlockService {
 	}
 
 	// Some blocks should spawn an item when affected by gravity
-	private boolean shouldSpawnItemInsteadOfFalling(FallingBlock fallingBlock) {
+	private boolean shouldSpawnItemInsteadOfFalling() {
 		return false;
 	}
 
 	// Some blocks should disappear from the game world when affected by gravity
 	private boolean shouldDisappearInsteadOfFalling(FallingBlock fallingBlock) {
-		switch (fallingBlock.getMaterial()) {
-			case BEDROCK:
-				return true;
-			default:
-				return false;
-		}
+		return fallingBlock.getMaterial() == Material.BEDROCK;
 	}
 }
