@@ -120,6 +120,7 @@ public class BlockListener implements Listener {
 				cancelled = true;
 				event.getBlock().getWorld().dropItemNaturally(event.getBlock().getLocation().add(0.5, 0, 0.5), new ItemStack(event.getTo()));
 			} else if (isVanillaFallingBlock(event.getTo()) && isVanillaFallingBlock(landingOn.getType())) {
+				// When sand/gravel fall on sand/gravel, make them spill outward
 
 				// Make the selection of the spot random
 				Collections.shuffle(spillDirections);

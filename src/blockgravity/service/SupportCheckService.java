@@ -153,11 +153,10 @@ public class SupportCheckService {
 			case ACACIA_DOOR:
 			case DARK_OAK_DOOR:
 			case BIRCH_DOOR:
-			case LEGACY_IRON_DOOR_BLOCK:
 			case JUNGLE_DOOR:
 			case SPRUCE_DOOR:
-			case LEGACY_WOOD_DOOR:
-			case LEGACY_WOODEN_DOOR:
+			case IRON_DOOR:
+			case OAK_DOOR:
 				// These are blocks that become entities when the block below them is removed
 				return false;
 			default:

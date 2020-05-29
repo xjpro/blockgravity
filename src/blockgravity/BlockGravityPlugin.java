@@ -19,13 +19,13 @@ public class BlockGravityPlugin extends JavaPlugin {
 
 	public void logFallingBlock(Block block) {
 		if (getCoreProtect() != null) {
-			getCoreProtect().logRemoval("BlockGravityPlugin", block.getLocation(), block.getType(), block.getData());
+			getCoreProtect().logRemoval("BlockGravityPlugin", block.getLocation(), block.getType(), block.getBlockData());
 		}
 	}
 
 	public void logLandingBlock(Block block, Material to) {
 		if (getCoreProtect() != null) {
-			getCoreProtect().logPlacement("BlockGravityPlugin", block.getLocation(), to, block.getData());
+			getCoreProtect().logPlacement("BlockGravityPlugin", block.getLocation(), to, block.getBlockData());
 		}
 	}
 
